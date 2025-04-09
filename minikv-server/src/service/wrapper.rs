@@ -7,15 +7,16 @@ use std::{
 };
 use tower::Service;
 
+pub type Handler =
+    Arc<dyn Fn(Command) -> BoxFuture<'static, Result<String, KvError>> + Send + Sync>;
+
 #[derive(Clone)]
 pub struct ServiceWrapper {
-    pub handler: Arc<dyn Fn(Command) -> BoxFuture<'static, Result<String, KvError>> + Send + Sync>,
+    pub handler: Handler,
 }
 
 impl ServiceWrapper {
-    pub fn new(
-        handler: Arc<dyn Fn(Command) -> BoxFuture<'static, Result<String, KvError>> + Send + Sync>,
-    ) -> Self {
+    pub fn new(handler: Handler) -> Self {
         Self { handler }
     }
 }

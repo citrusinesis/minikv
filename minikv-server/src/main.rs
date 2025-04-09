@@ -3,15 +3,11 @@ mod config;
 mod server;
 mod service;
 
-use app::handler::CommandExecutor;
+use app::handler::CommandService;
 use config::{Config, StorageKind};
-use service::{logging::LoggingLayer, wrapper::ServiceWrapper};
+use service::logging::LoggingLayer;
 
-use futures_util::{FutureExt, future::BoxFuture};
-use minikv_core::{
-    Command,
-    storage::{KvError, SharedInMemoryStorage, SharedStorage},
-};
+use minikv_core::storage::{SharedInMemoryStorage, SharedStorage};
 use std::sync::Arc;
 use tower::ServiceBuilder;
 use tracing_subscriber::EnvFilter;
@@ -32,18 +28,9 @@ async fn main() {
         StorageKind::InMemory => Arc::new(SharedInMemoryStorage::new()),
     };
 
-    let executor = Arc::new(CommandExecutor::new(store));
-    let handler: Arc<dyn Fn(Command) -> BoxFuture<'static, Result<String, KvError>> + Send + Sync> = {
-        let exec = executor.clone();
-        Arc::new(move |cmd: Command| {
-            let exec = exec.clone();
-            async move { exec.handle(cmd).await }.boxed()
-        })
-    };
-
     let service = ServiceBuilder::new()
         .layer(LoggingLayer)
-        .service(ServiceWrapper::new(handler));
+        .service(CommandService::new(store).wrap());
 
     server::start_server(&config.addr, service).await;
 }
