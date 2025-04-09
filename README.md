@@ -113,7 +113,7 @@ minikv> get foo
 ```
 
 
-## 📡 Request/Response Payload
+## 📡 Request / Response Payload
 
 Currently MiniKV uses a custom JSON-based TCP protocol.
 
