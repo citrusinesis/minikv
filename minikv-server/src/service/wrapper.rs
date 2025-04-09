@@ -34,3 +34,37 @@ impl Service<Command> for ServiceWrapper {
         (self.handler)(req)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tower::Service;
+
+    #[tokio::test]
+    async fn test_service_wrapper() {
+        let handler: Handler = Arc::new(|cmd| {
+            Box::pin(async move {
+                match cmd {
+                    Command::Get { key } => Ok(format!("value for {}", key)),
+                    _ => Ok("OK".into()),
+                }
+            })
+        });
+
+        let mut service = ServiceWrapper::new(handler);
+
+        assert!(
+            service
+                .poll_ready(&mut std::task::Context::from_waker(
+                    futures_util::task::noop_waker_ref()
+                ))
+                .is_ready()
+        );
+
+        let response = service
+            .call(Command::Get { key: "test".into() })
+            .await
+            .unwrap();
+        assert_eq!(response, "value for test");
+    }
+}

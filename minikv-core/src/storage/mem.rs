@@ -96,3 +96,40 @@ impl Storage for SharedInMemoryStorage {
             .delete(key)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_inmemory_storage() {
+        let store = InMemoryStorage::new();
+
+        store.set("key1".into(), "value1".into()).unwrap();
+        assert_eq!(store.get("key1").unwrap(), "value1");
+
+        store.set("key1".into(), "value2".into()).unwrap();
+        assert_eq!(store.get("key1").unwrap(), "value2");
+
+        store.delete("key1").unwrap();
+        assert!(store.get("key1").is_err());
+
+        assert!(store.delete("key1").is_err());
+    }
+
+    #[test]
+    fn test_shared_inmemory_storage() {
+        let store = SharedInMemoryStorage::new();
+
+        store.set("key1".into(), "value1".into()).unwrap();
+        let store_clone = store.clone();
+
+        std::thread::spawn(move || {
+            assert_eq!(store_clone.get("key1").unwrap(), "value1");
+        })
+        .join()
+        .unwrap();
+
+        assert_eq!(store.get("key1").unwrap(), "value1");
+    }
+}

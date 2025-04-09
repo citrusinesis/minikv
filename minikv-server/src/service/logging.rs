@@ -51,3 +51,38 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures_util::future::{Ready, ready};
+    use std::task::{Context, Poll};
+
+    #[derive(Clone)]
+    struct MockService;
+
+    impl Service<Command> for MockService {
+        type Response = String;
+        type Error = minikv_core::storage::KvError;
+        type Future = Ready<Result<Self::Response, Self::Error>>;
+
+        fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn call(&mut self, _: Command) -> Self::Future {
+            ready(Ok("test response".into()))
+        }
+    }
+
+    #[tokio::test]
+    async fn test_logging_middleware() {
+        let service = LoggingLayer.layer(MockService);
+        let mut service = service;
+
+        let cmd = Command::Get { key: "test".into() };
+
+        let response = service.call(cmd).await.unwrap();
+        assert_eq!(response, "test response");
+    }
+}

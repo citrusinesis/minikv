@@ -36,3 +36,29 @@ pub enum Response {
     Ok { value: String },
     Error { message: String },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::InMemoryStorage;
+
+    #[test]
+    fn test_command_execution() {
+        let store = InMemoryStorage::new();
+
+        let cmd = Command::Set {
+            key: "test".into(),
+            value: "value".into(),
+        };
+        assert_eq!(cmd.execute(&store).unwrap(), "OK");
+
+        let cmd = Command::Get { key: "test".into() };
+        assert_eq!(cmd.execute(&store).unwrap(), "value");
+
+        let cmd = Command::Del { key: "test".into() };
+        assert_eq!(cmd.execute(&store).unwrap(), "Deleted");
+
+        let cmd = Command::Get { key: "test".into() };
+        assert!(cmd.execute(&store).is_err());
+    }
+}
